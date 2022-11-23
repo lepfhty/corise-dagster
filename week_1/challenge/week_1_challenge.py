@@ -67,18 +67,19 @@ def get_s3_data(context):
 
 @op(config_schema={"nlargest": int},
     ins={"stocks": In(dagster_type=List[Stock])},
-    out={"stocks": Out(dagster_type=List[Aggregation])})
-def process_data(context, stocks: List[Stock]) -> List[Aggregation]:
+    out=DynamicOut())
+def process_data(context, stocks: List[Stock]):
     nlargest = context.op_config["nlargest"]
     result = [Aggregation(date=stock.date, high=stock.high)
               for stock in stocks]
     result.sort(key=lambda x: x.high, reverse=True)
-    return result[0:nlargest]
+    for i in range(nlargest):
+        yield DynamicOutput(result[i], mapping_key=str(i))
 
 
-@op(ins={"agg": In(dagster_type=List[Aggregation])})
-def put_redis_data(agg: List[Aggregation]) -> Nothing:
-    pass
+@op(ins={"agg": In(dagster_type=Aggregation)})
+def put_redis_data(context, agg: Aggregation) -> Nothing:
+    context.log.info(agg.json())
 
 
 @op(
@@ -93,5 +94,5 @@ def empty_stock_notify(context, empty_stocks) -> Nothing:
 def week_1_challenge():
     empty, stocks = get_s3_data()
     empty_stock_notify(empty)
-    agg = process_data(stocks)
-    put_redis_data(agg)
+    aggs = process_data(stocks)
+    aggs.map(put_redis_data)
