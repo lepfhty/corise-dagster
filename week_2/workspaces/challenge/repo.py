@@ -1,7 +1,8 @@
 from dagster import repository
-from workspaces.challenge.week_2_challenge import week_2_challenge_docker
+import workspaces.challenge.week_2_challenge as w2
 
 
 @repository
 def repo():
-    return [week_2_challenge_docker]
+    return [w2.week_2_challenge_docker,
+            w2.week_2_challenge_single_op_docker]
