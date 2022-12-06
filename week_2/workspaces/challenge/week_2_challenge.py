@@ -43,7 +43,8 @@ def insert_dbt_data(context, table_name):
     required_resource_keys={'dbt'},
     ins={'start_after': In(Nothing)},
     out={'success': Out(is_required=False),
-         'failure': Out(is_required=False)}
+         'failure': Out(is_required=False)},
+    tags={'kind': 'dbt'}
 )
 def dbt_test(context):
     result = context.resources.dbt.test()
