@@ -1,13 +1,17 @@
 import csv
 import json
 from random import randint
-from typing import Iterator
+from typing import Any, Dict, Iterator, Union
 from unittest.mock import MagicMock
 
 import boto3
 import redis
 import sqlalchemy
 from dagster import Field, Int, String, resource
+from sqlalchemy import text
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.sql import Executable
+
 from workspaces.types import Aggregation
 
 
@@ -17,14 +21,14 @@ class Postgres:
         self.user = user
         self.password = password
         self.database = database
-        self._engine = sqlalchemy.create_engine(self.uri)
+        self._engine = sqlalchemy.create_engine(self.uri, echo=True)
 
     @property
     def uri(self):
         return f"postgresql://{self.user}:{self.password}@{self.host}/{self.database}"
 
-    def execute_query(self, query: str):
-        self._engine.execute(query)
+    def execute_query(self, query: Union[str, Executable]):
+        return self._engine.execute(query)
 
 
 class S3:
@@ -43,6 +47,11 @@ class S3:
             aws_secret_access_key=self.secret_key,
             endpoint_url=self.endpoint_url,
         )
+
+    def list_keys(self) -> Iterator:
+        response = self.client.list_objects(Bucket=self.bucket)
+        for key in response['Contents']:
+            yield key['Key']
 
     def get_data(self, key_name: str) -> Iterator:
         obj = self.client.get_object(Bucket=self.bucket, Key=key_name)
