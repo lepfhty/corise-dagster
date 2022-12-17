@@ -31,3 +31,20 @@ def insert_dbt_data(context, create_dbt_table):
         context.log.info("Inserted a row")
 
     context.log.info("Batch inserted")
+
+
+@asset(key_prefix="postgresql")
+def dbt_table(context, insert_dbt_data):
+    pass
+
+
+dbt_assets = load_assets_from_dbt_project(
+    project_dir=DBT_PROJECT_PATH,
+    profiles_dir=DBT_PROJECT_PATH,
+    key_prefix="dbt"
+)
+
+
+@asset
+def end(context, my_second_dbt_model):
+    context.log.info('done')
